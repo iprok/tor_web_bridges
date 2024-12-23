@@ -1,0 +1,3 @@
+---
+nginx_package_name: nginx-light
+nginx_update_nginxconf: true

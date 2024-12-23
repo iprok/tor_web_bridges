@@ -10,7 +10,7 @@
 - name: install nginx and packages
   apt: 
     name: 
-    - nginx-light
+    - {{ nginx_package_name }}
     - certbot
   tags: [nginx, packages]
 
@@ -20,6 +20,7 @@
     dest: /etc/nginx/nginx.conf
     backup: yes
   notify: reload nginx
+  when: nginx_update_nginxconf | default(false) | bool
   tags: [nginx, configs]
 
 - name: copy nginx default host config
