@@ -1,0 +1,7 @@
+---
+- hosts: webbridges
+  remote_user: root
+  tasks:
+    - ansible.builtin.include_role:
+        name: tor_web_bridge
+      tags: [main_role]
