@@ -7,41 +7,44 @@ networks:
       config:
         - subnet: 2001:db8:1::/64
           gateway: 2001:db8:1::108
+
 services:
-    webtunnel-bridge:
-        restart: always
-        environment:
-            - NICKNAME=$BRIDGE_NICKNAME
-            - PT_PORT=15000
-            - OR_PORT=127.0.0.1:auto
-            - EMAIL=$OPERATOR_EMAIL
-            - WEBTUNNEL_URL=$URL
-            - WEBTUNNEL_ENABLE_ADDITIONAL_VARIABLES=1
-            - WEBTUNNELV_AssumeReachable=$WEBTUNNELV_AssumeReachable
-            - WEBTUNNELV_ORPort=$WEBTUNNELV_ORPort
-        volumes:
-            - 'webtunnel-tor-state:/var/lib/tor'
-        user: debian-tor
-        ports:
-            - '127.0.0.1:15000:15000'
-        container_name: webtunnelBridge
-        image: 'thetorproject/webtunnel-bridge:latest'
-        labels:
-            - "com.centurylinklabs.watchtower.enable=true"
-        networks:
-          wtb_net:
-            ipv6_address: 2001:db8:1::256
-    watchtower:
-        restart: always
-        image: containrrr/watchtower
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-            - /etc/timezone:/etc/timezone:ro
-        environment:
-            - WATCHTOWER_CLEANUP=true
-            - WATCHTOWER_LABEL_ENABLE=true
-            - WATCHTOWER_INCLUDE_RESTARTING=true
-        labels:
-            - "com.centurylinklabs.watchtower.enable=true"
+  webtunnel-bridge:
+    restart: always
+    environment:
+      - NICKNAME=$BRIDGE_NICKNAME
+      - PT_PORT=15000
+      - OR_PORT=127.0.0.1:auto
+      - EMAIL=$OPERATOR_EMAIL
+      - WEBTUNNEL_URL=$URL
+      - WEBTUNNEL_ENABLE_ADDITIONAL_VARIABLES=1
+      - WEBTUNNELV_AssumeReachable=$WEBTUNNELV_AssumeReachable
+      - WEBTUNNELV_ORPort=$WEBTUNNELV_ORPort
+    volumes:
+      - 'webtunnel-tor-state:/var/lib/tor'
+    user: debian-tor
+    ports:
+      - '127.0.0.1:15000:15000'
+    container_name: webtunnelBridge
+    image: 'thetorproject/webtunnel-bridge:latest'
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    networks:
+      wtb_net:
+        ipv6_address: 2001:db8:1::256
+
+  watchtower:
+    restart: always
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
 volumes:
   webtunnel-tor-state:

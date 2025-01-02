@@ -3,116 +3,120 @@
   ansible.builtin.fail:
     msg: "Variable '{{ item }}' is required but not defined. Please define it in your inventory or playbook."
   with_items:
-    - admin_email
-    - bridge_nickname
+    - tor_web_bridge_admin_email
+    - tor_web_bridge_bridge_nickname
   when: vars[item] is not defined
 
 - name: Ensure needed facts are defined
-  ansible.builtin.include_tasks: 
+  ansible.builtin.include_tasks:
     file: custom_facts.yml
-  when: internal_hostname is not defined or web_path is not defined
-  tags: [facts,setup]
-  
+  when:
+    - tor_web_bridge_internal_hostname is not defined
+    - tor_web_bridge_web_path is not defined
+  tags: [facts, setup]
+
 - name: Ensure DNS management tasks file exists
   ansible.builtin.fail:
-    msg: "DNS management service '{{ manage_dns_service }}' is not supported. Missing tasks file: '{{ manage_dns_service }}.yml'."
+    msg: "DNS management service '{{ tor_web_bridge_manage_dns_service }}' is not supported. Missing tasks file: '{{ tor_web_bridge_manage_dns_service }}.yml'."
   when:
-    - manage_dns | bool
-    - manage_dns_service is defined
-    - not lookup('first_found', files=manage_dns_service + '.yml', errors='ignore')
+    - tor_web_bridge_manage_dns | bool
+    - tor_web_bridge_manage_dns_service is defined
+    - not lookup('first_found', files=tor_web_bridge_manage_dns_service + '.yml', errors='ignore')
 
 - name: Include DNS management tasks if DNS management is enabled
-  ansible.builtin.include_tasks: "{{ manage_dns_service }}.yml"
+  ansible.builtin.include_tasks: "{{ tor_web_bridge_manage_dns_service }}.yml"
   when:
-    - manage_dns | bool
-    - manage_dns_service is defined
+    - tor_web_bridge_manage_dns | bool
+    - tor_web_bridge_manage_dns_service is defined
   tags: [dns]
 
-- name: install nginx and packages
-  apt: 
-    cache_valid_time: 7200
+- name: Install Nginx and packages
+  ansible.builtin.apt:
+    name:
+      - "{{ tor_web_bridge_nginx_package_name }}"
+      - certbot
     update_cache: yes
-    name: 
-    - "{{ nginx_package_name }}"
-    - certbot
-
+    cache_valid_time: 7200
   tags: [nginx, packages]
 
-- name: copy nginx.conf
-  copy:
+- name: Copy nginx.conf
+  ansible.builtin.copy:
     src: nginx/nginx.conf
     dest: /etc/nginx/nginx.conf
     backup: yes
-  notify: reload nginx
-  when: nginx_update_nginxconf | default(false) | bool
+  notify: Reload Nginx
+  when: tor_web_bridge_nginx_update_nginxconf | default(false) | bool
   tags: [nginx, configs]
 
-- name: copy nginx default host config
-  copy:
+- name: Copy nginx default host config
+  ansible.builtin.copy:
     src: nginx/default
     dest: /etc/nginx/sites-available/default
     backup: yes
-  notify: reload nginx
+  notify: Reload Nginx
   tags: [nginx, configs]
 
-- name: Force all notified handlers to run at this point, not waiting for normal sync points
+- name: Force all notified handlers to run at this point
   ansible.builtin.meta: flush_handlers
   tags: [nginx, handlers]
 
-
 - name: Wait for DNS propagation if Cloudflare records were changed
   ansible.builtin.pause:
-    minutes: "{{ dns_propagation_wait_time }}"
-  when: 
-    - manage_dns | bool
+    minutes: "{{ tor_web_bridge_dns_propagation_wait_time }}"
+  when:
+    - tor_web_bridge_manage_dns | bool
     - manage_dns_result is defined
     - manage_dns_result.changed | bool
   tags: [certbot, dns]
 
-- name: run certbot to issue certificates
+- name: Run certbot to issue certificates
   ansible.builtin.command:
-    cmd: /usr/bin/certbot certonly --webroot -n --agree-tos -m {{ admin_email }} -d {{ internal_hostname }}.{{ base_domain }} --webroot-path /var/www/html -q
-    creates: /etc/letsencrypt/live/{{ internal_hostname }}.{{ base_domain }}/fullchain.pem
+    cmd: /usr/bin/certbot certonly --webroot -n --agree-tos -m {{ tor_web_bridge_admin_email }} -d {{ tor_web_bridge_internal_hostname }}.{{ tor_web_bridge_base_domain }} --webroot-path /var/www/html -q
+    creates: /etc/letsencrypt/live/{{ tor_web_bridge_internal_hostname }}.{{ tor_web_bridge_base_domain }}/fullchain.pem
   tags: [certbot, certificates]
 
-- name: Check if docker is installed and running
+- name: Check if Docker is installed and running
   ansible.builtin.stat:
     path: "/run/docker.sock"
   register: docker_sock
   tags: [docker]
 
-- name: include docker installation file
-  ansible.builtin.include_tasks: 
+- name: Include Docker installation file
+  ansible.builtin.include_tasks:
     file: install_docker.yml
   when: not docker_sock.stat.exists
   tags: [docker]
 
-- name: ensure that docker compose is installed
+- name: Ensure that Docker Compose is installed
   block:
-    - apt:
+    - name: Install Docker Compose Plugin
+      ansible.builtin.apt:
         name: docker-compose-plugin
-        cache_valid_time: 7200
         update_cache: yes
+        cache_valid_time: 7200
 
   rescue:
-    - name: create directory for manualy installed docker-compose plugin
-      file:
-        name: /usr/local/lib/docker/cli-plugins/
+    - name: Create directory for manually installed Docker Compose plugin
+      ansible.builtin.file:
+        path: /usr/local/lib/docker/cli-plugins/
         state: directory
+        owner: root
+        group: root
+        mode: '0755'
 
-    - name: manualy installing of docker-compose cause we have no package in installed repo
+    - name: Manually install Docker Compose
       ansible.builtin.get_url:
         url: 'https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64'
         dest: '/usr/local/lib/docker/cli-plugins/docker-compose'
-        mode: "0755"
-
-  tags: [docker,compose]
-
+        mode: '0755'
+  tags: [docker, compose]
 
 - name: Ensure /etc/docker/composes/tor_web_bridge/ exists
   ansible.builtin.file:
     path: /etc/docker/composes/tor_web_bridge/
     state: directory
+    owner: root
+    group: root
     mode: '0755'
   tags: [docker, create_dir, tor_web_bridge_setup]
 
@@ -140,9 +144,9 @@
 
 - name: Generate nginx host config
   ansible.builtin.template:
-    backup: yes
     src: nginx/web_bridge.conf.j2
     dest: /etc/nginx/sites-enabled/web_bridge.conf
     mode: '0644'
+    backup: yes
+  notify: Reload Nginx
   tags: [nginx, config]
-  notify: reload nginx

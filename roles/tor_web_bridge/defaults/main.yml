@@ -1,8 +1,6 @@
 ---
-nginx_package_name: nginx-light
-nginx_update_nginxconf: true
-
-manage_dns: true
-manage_dns_service: cloudflare
-
-dns_propagation_wait_time: 1  # минуты
+tor_web_bridge_nginx_package_name: nginx-light
+tor_web_bridge_nginx_update_nginxconf: true
+tor_web_bridge_manage_dns: true
+tor_web_bridge_manage_dns_service: cloudflare
+tor_web_bridge_dns_propagation_wait_time: 1  # минуты

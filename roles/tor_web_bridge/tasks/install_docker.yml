@@ -1,7 +1,7 @@
 ---
 - name: Install required system packages
-  apt:
-    pkg:
+  ansible.builtin.apt:
+    name:
       - apt-transport-https
       - ca-certificates
       - curl
@@ -11,29 +11,30 @@
       - python3-setuptools
       - python3-debian
       - python3-docker
-    state: latest
+    state: present
     update_cache: true
     cache_valid_time: 7200
+  tags: [docker, setup]
 
 - name: Add Docker repo with key
-  deb822_repository:
+  ansible.builtin.deb822_repository:
     name: docker
     types: deb
     uris: https://download.docker.com/linux/{{ ansible_distribution | lower }}
     suites: '{{ ansible_distribution_release }}'
     components: stable
     signed_by: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
-
+  tags: [docker, setup]
 
 - name: Update apt and install docker-ce
-  apt:
-    name: 
-    - docker-ce
-    - docker-ce-cli 
-    - containerd.io 
-    - docker-buildx-plugin 
-    - docker-compose-plugin
-    state: latest
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
     update_cache: true
     cache_valid_time: 7200
-
+  tags: [docker, setup]

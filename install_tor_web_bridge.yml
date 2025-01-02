@@ -1,7 +1,9 @@
 ---
-- hosts: webbridges
+- name: Install Tor Web Bridge
+  hosts: webbridges
   remote_user: root
   tasks:
-    - ansible.builtin.include_role:
+    - name: Include Tor Web Bridge role
+      ansible.builtin.include_role:
         name: tor_web_bridge
       tags: [main_role]
