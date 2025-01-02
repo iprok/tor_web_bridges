@@ -1,9 +1,9 @@
 ---
 - name: Create A and AAAA DNS records in Cloudflare
   community.general.cloudflare_dns:
-    api_token: "{{ cloudflare_api_token }}"
-    zone: "{{ base_domain }}"
-    record: "{{ internal_hostname }}"
+    api_token: "{{ tor_web_bridge_cloudflare_api_token }}"
+    zone: "{{ tor_web_bridge_base_domain }}"
+    record: "{{ tor_web_bridge_internal_hostname }}"
     type: "{{ item.type }}"
     value: "{{ ansible_facts[item.fact].address }}"
     comment: "{{ inventory_hostname }}"
@@ -12,7 +12,7 @@
     - { type: 'A', fact: 'default_ipv4' }
     - { type: 'AAAA', fact: 'default_ipv6' }
   when:
-    - cloudflare_api_token is defined
+    - tor_web_bridge_cloudflare_api_token is defined
     - ansible_facts[item.fact].address is defined
   register: manage_dns_result
   tags: [dns, cloudflare]
