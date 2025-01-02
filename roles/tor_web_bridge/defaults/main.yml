@@ -1,3 +1,8 @@
 ---
 nginx_package_name: nginx-light
 nginx_update_nginxconf: true
+
+manage_dns: true
+manage_dns_service: cloudflare
+
+dns_propagation_wait_time: 1  # минуты

@@ -1,0 +1,69 @@
+---
+- name: create directory for the custom facts
+  file:
+    name: /etc/ansible/facts.d
+    state: directory
+
+- block:
+  - name: Use local fact for internal_hostname_temp
+    ansible.builtin.set_fact:
+      internal_hostname_temp: "{{ ansible_local.tor_web_bridge_internal_hostname.value }}"
+    when:
+      - ansible_local.tor_web_bridge_internal_hostname.value is defined
+
+  - name: Generate internal_hostname_temp
+    ansible.builtin.set_fact:
+      internal_hostname_temp: "{{ lookup('password', '/dev/null length=10 chars=ascii_lowercase,digits') }}"
+    register: internal_hostname_generation
+    when: internal_hostname_temp is not defined
+
+  - name: Save internal_hostname to local facts
+    ansible.builtin.copy:
+      content: |
+        {
+          "value": "{{ internal_hostname_temp }}"
+        }
+      dest: /etc/ansible/facts.d/tor_web_bridge_internal_hostname.fact
+      owner: root
+      group: root
+      mode: '0644'
+    when: internal_hostname_generation.skipped is not defined or not internal_hostname_generation.skipped 
+
+  - name: set real variable from temporary
+    ansible.builtin.set_fact:
+      internal_hostname: "{{ internal_hostname_temp }}"
+
+  when: internal_hostname is not defined
+  tags: [facts, setup]
+
+- block:
+  - name: Use local fact for web_path_temp
+    ansible.builtin.set_fact:
+      web_path_temp: "{{ ansible_local.tor_web_bridge_web_path.value }}"
+    when:
+      - ansible_local.tor_web_bridge_web_path.value is defined
+
+  - name: Generate web_path_temp
+    ansible.builtin.set_fact:
+      web_path_temp: "{{ lookup('password', '/dev/null length=10 chars=ascii_lowercase,digits') }}"
+    register: web_path_generation
+    when: web_path_temp is not defined
+
+  - name: Save web_path to local facts
+    ansible.builtin.copy:
+      content: |
+        {
+          "value": "{{ web_path_temp }}"
+        }
+      dest: /etc/ansible/facts.d/tor_web_bridge_web_path.fact
+      owner: root
+      group: root
+      mode: '0644'
+    when: web_path_generation.skipped is not defined or not web_path_generation.skipped 
+
+  - name: set real variable from temporary
+    ansible.builtin.set_fact:
+      web_path: "{{ web_path_temp }}"
+
+  when: web_path is not defined
+  tags: [facts, setup]

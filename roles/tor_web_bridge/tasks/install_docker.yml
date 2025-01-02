@@ -13,6 +13,7 @@
       - python3-docker
     state: latest
     update_cache: true
+    cache_valid_time: 7200
 
 - name: Add Docker repo with key
   deb822_repository:
@@ -34,4 +35,5 @@
     - docker-compose-plugin
     state: latest
     update_cache: true
+    cache_valid_time: 7200
 

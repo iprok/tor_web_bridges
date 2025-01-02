@@ -5,13 +5,37 @@
   with_items:
     - admin_email
     - bridge_nickname
-  when: item not in vars or vars[item] is undefined
+  when: vars[item] is not defined
+
+- name: Ensure needed facts are defined
+  ansible.builtin.include_tasks: 
+    file: custom_facts.yml
+  when: internal_hostname is not defined or web_path is not defined
+  tags: [facts,setup]
+  
+- name: Ensure DNS management tasks file exists
+  ansible.builtin.fail:
+    msg: "DNS management service '{{ manage_dns_service }}' is not supported. Missing tasks file: '{{ manage_dns_service }}.yml'."
+  when:
+    - manage_dns | bool
+    - manage_dns_service is defined
+    - not lookup('first_found', files=manage_dns_service + '.yml', errors='ignore')
+
+- name: Include DNS management tasks if DNS management is enabled
+  ansible.builtin.include_tasks: "{{ manage_dns_service }}.yml"
+  when:
+    - manage_dns | bool
+    - manage_dns_service is defined
+  tags: [dns]
 
 - name: install nginx and packages
   apt: 
+    cache_valid_time: 7200
+    update_cache: yes
     name: 
-    - {{ nginx_package_name }}
+    - "{{ nginx_package_name }}"
     - certbot
+
   tags: [nginx, packages]
 
 - name: copy nginx.conf
@@ -35,6 +59,16 @@
   ansible.builtin.meta: flush_handlers
   tags: [nginx, handlers]
 
+
+- name: Wait for DNS propagation if Cloudflare records were changed
+  ansible.builtin.pause:
+    minutes: "{{ dns_propagation_wait_time }}"
+  when: 
+    - manage_dns | bool
+    - manage_dns_result is defined
+    - manage_dns_result.changed | bool
+  tags: [certbot, dns]
+
 - name: run certbot to issue certificates
   ansible.builtin.command:
     cmd: /usr/bin/certbot certonly --webroot -n --agree-tos -m {{ admin_email }} -d {{ internal_hostname }}.{{ base_domain }} --webroot-path /var/www/html -q
@@ -52,6 +86,28 @@
     file: install_docker.yml
   when: not docker_sock.stat.exists
   tags: [docker]
+
+- name: ensure that docker compose is installed
+  block:
+    - apt:
+        name: docker-compose-plugin
+        cache_valid_time: 7200
+        update_cache: yes
+
+  rescue:
+    - name: create directory for manualy installed docker-compose plugin
+      file:
+        name: /usr/local/lib/docker/cli-plugins/
+        state: directory
+
+    - name: manualy installing of docker-compose cause we have no package in installed repo
+      ansible.builtin.get_url:
+        url: 'https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64'
+        dest: '/usr/local/lib/docker/cli-plugins/docker-compose'
+        mode: "0755"
+
+  tags: [docker,compose]
+
 
 - name: Ensure /etc/docker/composes/tor_web_bridge/ exists
   ansible.builtin.file:
