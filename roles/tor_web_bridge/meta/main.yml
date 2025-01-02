@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  role_name: tor_web_bridge
+  author: Ivan Prokudin
+  description: >
+    Ansible role to set up a Tor Web Bridge with Nginx, Docker, and DNS management support.
+  license: MIT
+  min_ansible_version: 2.18
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+  galaxy_tags:
+    - tor
+    - bridge
+dependencies: []
