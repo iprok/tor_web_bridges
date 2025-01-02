@@ -8,7 +8,8 @@
     mode: '0755'
   tags: [facts, setup]
 
-- when: tor_web_bridge_internal_hostname is not defined
+- name: Setting tor_web_bridge_internal_hostname
+  when: tor_web_bridge_internal_hostname is not defined
   tags: [facts, setup]
   block:
     - name: Use local fact for internal_hostname_temp
@@ -40,8 +41,8 @@
         tor_web_bridge_internal_hostname: "{{ internal_hostname_temp }}"
 
 
-
-- when: tor_web_bridge_web_path is not defined
+- name: Setting tor_web_bridge_web_path
+  when: tor_web_bridge_web_path is not defined
   tags: [facts, setup]
   block:
     - name: Use local fact for web_path_temp

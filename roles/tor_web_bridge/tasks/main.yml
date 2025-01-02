@@ -35,7 +35,7 @@
     name:
       - "{{ tor_web_bridge_nginx_package_name }}"
       - certbot
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 7200
   tags: [nginx, packages]
 
@@ -43,7 +43,8 @@
   ansible.builtin.copy:
     src: nginx/nginx.conf
     dest: /etc/nginx/nginx.conf
-    backup: yes
+    backup: true
+    mode: '0644'
   notify: Reload Nginx
   when: tor_web_bridge_nginx_update_nginxconf | default(false) | bool
   tags: [nginx, configs]
@@ -52,7 +53,8 @@
   ansible.builtin.copy:
     src: nginx/default
     dest: /etc/nginx/sites-available/default
-    backup: yes
+    backup: true
+    mode: '0644'
   notify: Reload Nginx
   tags: [nginx, configs]
 
@@ -71,7 +73,9 @@
 
 - name: Run certbot to issue certificates
   ansible.builtin.command:
-    cmd: /usr/bin/certbot certonly --webroot -n --agree-tos -m {{ tor_web_bridge_admin_email }} -d {{ tor_web_bridge_internal_hostname }}.{{ tor_web_bridge_base_domain }} --webroot-path /var/www/html -q
+    cmd: >-
+      /usr/bin/certbot certonly --webroot -n --agree-tos -m {{ tor_web_bridge_admin_email }}
+      -d {{ tor_web_bridge_internal_hostname }}.{{ tor_web_bridge_base_domain }} --webroot-path /var/www/html -q
     creates: /etc/letsencrypt/live/{{ tor_web_bridge_internal_hostname }}.{{ tor_web_bridge_base_domain }}/fullchain.pem
   tags: [certbot, certificates]
 
@@ -88,11 +92,12 @@
   tags: [docker]
 
 - name: Ensure that Docker Compose is installed
+  tags: [docker, compose]
   block:
     - name: Install Docker Compose Plugin
       ansible.builtin.apt:
         name: docker-compose-plugin
-        update_cache: yes
+        update_cache: true
         cache_valid_time: 7200
 
   rescue:
@@ -109,7 +114,6 @@
         url: 'https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64'
         dest: '/usr/local/lib/docker/cli-plugins/docker-compose'
         mode: '0755'
-  tags: [docker, compose]
 
 - name: Ensure /etc/docker/composes/tor_web_bridge/ exists
   ansible.builtin.file:
@@ -147,6 +151,6 @@
     src: nginx/web_bridge.conf.j2
     dest: /etc/nginx/sites-enabled/web_bridge.conf
     mode: '0644'
-    backup: yes
+    backup: true
   notify: Reload Nginx
   tags: [nginx, config]
